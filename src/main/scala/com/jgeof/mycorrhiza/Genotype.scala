@@ -25,11 +25,11 @@ class Genotype(rawGenotype: String) extends Iterable[Int] {
         for(i <- chars.indices){
             val c = chars.charAt(i)
             c match {
-                case 'A' => set + ((AlphaSize * i) + 0);
-                case 'T' => set + ((AlphaSize * i) + 1);
-                case 'G' => set + ((AlphaSize * i) + 2);
-                case 'C' => set + ((AlphaSize * i) + 3);
-                case 'N' => iv + i
+                case 'A' => set.add((AlphaSize * i) + 0);
+                case 'T' => set.add((AlphaSize * i) + 1);
+                case 'G' => set.add((AlphaSize * i) + 2);
+                case 'C' => set.add((AlphaSize * i) + 3);
+                case 'N' => iv.add(i)
                 case c: Char => throw InvalidCharacter(c.toString)
             }
         }
