@@ -3,11 +3,14 @@ package com.jgeof.mycorrhiza
 import scala.collection.{mutable => m}
 import com.jgeof.mycorrhiza.Exceptions._
 
-class Genotype(rawGenotype: String) extends Iterable[Int] {
+class Genotype(gen: (m.BitSet, m.BitSet), numLoci: Int) extends Iterable[Int] {
     import Genotype._
 
-    def numLoci: Int = rawGenotype.length
-    val (genotype , invalid) = stringToBitset(rawGenotype)
+    val genotype = gen._1
+    val invalid = gen._2
+
+    def this(rawGenotype: String) = this(Genotype.stringToBitset(rawGenotype), rawGenotype.length)
+
 
     def valid(a:Genotype, b:Genotype):Int = numLoci-(a.invalid|b.invalid).size
     def same(a:Genotype, b:Genotype):Int = (a.genotype&b.genotype).size
@@ -17,6 +20,11 @@ class Genotype(rawGenotype: String) extends Iterable[Int] {
     def ==(that: Genotype): Float = same(this, that)
     def =?(that: Genotype): Float = valid(this, that)
 
+}
+
+object Genotype {
+
+    val AlphaSize = 4
 
     def stringToBitset(chars: String): (m.BitSet, m.BitSet) = {
         val set = m.BitSet.empty
@@ -35,12 +43,6 @@ class Genotype(rawGenotype: String) extends Iterable[Int] {
         }
         (set, iv)
     }
-
-}
-
-object Genotype {
-
-    val AlphaSize = 4
 
     def naiveDistance(a: String, b: String): Float = {
         val same = a.zip(b).map({

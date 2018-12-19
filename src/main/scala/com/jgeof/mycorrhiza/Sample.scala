@@ -1,25 +1,47 @@
 package com.jgeof.mycorrhiza
 
+import com.jgeof.mycorrhiza.distances.{DistanceMatrix, Distances}
+
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 
 class Sample(identifier:String, origin:String, rawGenotype: String) extends Genotype(rawGenotype) {
 
     def getName: String = identifier
+
+    override def toString(): String = s"[$identifier: $origin]"
 }
 
 object Sample {
 
-    def readFromFile(fileName: String): Array[Sample] = {
+    private val instances = new ArrayBuffer[Sample]
+    var distMatrix: Option[DistanceMatrix] = None
+
+    def app(identifier: String, origin: String, rawGenotype: String): Sample = {
+        val sample = new Sample(identifier, origin, rawGenotype)
+        instances.append(sample)
+        sample
+    }
+
+    def unapply(arg: Sample): Option[String] = Some(arg.getName)
+
+    val getSamples: ArrayBuffer[Sample] = instances
+
+    def calcDistances(metric: Distances.Metric): Unit = {
+        distMatrix = Some(Distances.getDistanceMatrix(instances, metric))
+        println("DONE")
+    }
+
+    def readFromFile(fileName: String): Unit = {
         println("Reading samples form file...")
         val lines = Source.fromFile(fileName).getLines()
-        val sampleBuffer = ArrayBuffer.empty[Sample]
         var t0 = System.nanoTime()
         var sampleCount = 0
         var thresh = 20
+        var arr = Array.empty[String]
         for(str <- lines) {
-            val arr = str.split("\t")
-            sampleBuffer.append(new Sample(arr.head, arr(1), arr.last))
+            arr = str.split("\t")
+            instances.append(Sample.app(arr.head, arr(1), arr.last))
             sampleCount += 1
             if(sampleCount % thresh == 0){
                 val perSecond = thresh/((System.nanoTime()-t0)*1e-9)
@@ -28,6 +50,5 @@ object Sample {
                 t0 = System.nanoTime()
             }
         }
-        sampleBuffer.toArray
     }
 }
