@@ -1,4 +1,4 @@
-package mycorrhiza
+package com.jgeof.mycorrhiza
 
 
 
@@ -7,10 +7,10 @@ object Distances {
     type Metric = (Sample, Sample) => Float
     type DistMatrix = Array[Array[Float]]
 
-    def toDistanceMatrix(samples: List[Sample], metric: Metric): DistMatrix = {
+    def toDistanceMatrix(samples: Array[Sample], metric: Metric): DistMatrix = {
         var matrix = Array.ofDim[Float](samples.length, samples.length)
-        for(i <- samples.indices){
-            for(j <- i until samples.length){
+        for(i <- samples.indices.par){
+            for(j <- i until samples.length par){
                 val f = metric(samples(i),samples(j))
                 matrix(i)(j) = f
                 matrix(j)(i) = f
