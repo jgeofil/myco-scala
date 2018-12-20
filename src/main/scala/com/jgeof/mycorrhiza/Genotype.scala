@@ -2,47 +2,38 @@ package com.jgeof.mycorrhiza
 
 import scala.collection.{mutable => m}
 import com.jgeof.mycorrhiza.Exceptions._
+import com.jgeof.mycorrhiza.Genotype.AlphaSize
 
-class Genotype(gen: (m.BitSet, m.BitSet), numLoci: Int) extends Iterable[Int] {
-    import Genotype._
+class Genotype() extends Iterable[Int] {
 
-    val genotype = gen._1
-    val invalid = gen._2
+    private val genotype = m.BitSet.empty
+    private val invalid = m.BitSet.empty
+    var numLoci = 0
 
-    def this(rawGenotype: String) = this(Genotype.stringToBitset(rawGenotype), rawGenotype.length)
+    def initFromString(rawGenotype: String): Unit = {
+        numLoci = rawGenotype.length
+        for(i <- rawGenotype.indices){
+            val c = rawGenotype.charAt(i)
+            c match {
+                case 'A' => genotype.add((AlphaSize * i) + 0);
+                case 'T' => genotype.add((AlphaSize * i) + 1);
+                case 'G' => genotype.add((AlphaSize * i) + 2);
+                case 'C' => genotype.add((AlphaSize * i) + 3);
+                case 'N' => invalid.add(i)
+                case c: Char => throw InvalidCharacter(c.toString)
+            }
+        }
+    }
 
-
-    def valid(a:Genotype, b:Genotype):Int = numLoci-(a.invalid|b.invalid).size
-    def same(a:Genotype, b:Genotype):Int = (a.genotype&b.genotype).size
-
+    def ==(that:Genotype):Int = numLoci - (this.invalid | that.invalid).size
+    def =?(that:Genotype):Int = (this.genotype & that.genotype).size
 
     override def iterator: Iterator[Int] = genotype.toIterator
-    def ==(that: Genotype): Float = same(this, that)
-    def =?(that: Genotype): Float = valid(this, that)
-
 }
 
 object Genotype {
 
     val AlphaSize = 4
-
-    def stringToBitset(chars: String): (m.BitSet, m.BitSet) = {
-        val set = m.BitSet.empty
-        val iv = m.BitSet.empty
-
-        for(i <- chars.indices){
-            val c = chars.charAt(i)
-            c match {
-                case 'A' => set.add((AlphaSize * i) + 0);
-                case 'T' => set.add((AlphaSize * i) + 1);
-                case 'G' => set.add((AlphaSize * i) + 2);
-                case 'C' => set.add((AlphaSize * i) + 3);
-                case 'N' => iv.add(i)
-                case c: Char => throw InvalidCharacter(c.toString)
-            }
-        }
-        (set, iv)
-    }
 
     def naiveDistance(a: String, b: String): Float = {
         val same = a.zip(b).map({
