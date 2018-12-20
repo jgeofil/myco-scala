@@ -1,10 +1,11 @@
-package com.jgeof.mycorrhiza
+package com.jgeof.mycorrhiza.samples
+
+import com.jgeof.mycorrhiza.util.Exceptions._
 
 import scala.collection.{mutable => m}
-import com.jgeof.mycorrhiza.Exceptions._
-import com.jgeof.mycorrhiza.Genotype.AlphaSize
 
 class Genotype() extends Iterable[Int] {
+    import Genotype._
 
     private val genotype = m.BitSet.empty
     private val invalid = m.BitSet.empty

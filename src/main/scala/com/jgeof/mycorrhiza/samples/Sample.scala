@@ -1,4 +1,4 @@
-package com.jgeof.mycorrhiza
+package com.jgeof.mycorrhiza.samples
 
 class Sample(identifier:String, origin:String) extends Genotype() {
 
@@ -12,9 +12,17 @@ class Sample(identifier:String, origin:String) extends Genotype() {
         (shared-same)/same.toFloat
     }
 
+    def >(that: Sample): Boolean = this.getName > that.getName
+
 }
 
 object Sample {
+
+    def apply(identifier: String, origin: String, genotype: String): Sample = {
+        val sample = new Sample(identifier, origin)
+        sample.initFromString(genotype)
+        sample
+    }
 
     def unapply(arg: Sample): Option[String] = Some(arg.getName)
 

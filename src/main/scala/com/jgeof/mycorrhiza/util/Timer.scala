@@ -1,4 +1,4 @@
-package com.jgeof.mycorrhiza
+package com.jgeof.mycorrhiza.util
 
 object Timer {
 

@@ -1,20 +1,20 @@
 package com.jgeof.mycorrhiza
 
-import com.jgeof.mycorrhiza.distances.Distances
+import com.jgeof.mycorrhiza.util.Timer.time
+import com.jgeof.mycorrhiza.Graph._
 
 object Main extends App{
 
-    var t0 = System.nanoTime()
-    Sample.readFromFile("/home/jeremy/repos/scala-myco/resources/sequences-N1000-L1000000-P10.tsv")
-    var t1 = System.nanoTime()
-    println("Elapsed time: " + (t1 - t0)*1e-9)
+    val graph = new Graph
 
-    t0 = System.nanoTime()
-    Sample.calcDistances(Distances.jukesCantor())
-    println("DONE")
-    print(Sample.distMatrix.toString)
-    t1 = System.nanoTime()
-    println("Elapsed time: " + (t1 - t0)*1e-9)
+    time("Read samples"){graph.readSamplesFromFile("resources/sequences-N20-L100-P3.tsv")}
+
+    graph.populateClusters()
+
+    val (c1: graph.Cluster, c2: graph.Cluster) = graph.findMinClusters(Graph.MainClusterList())
+    graph.populateTempClusters(c1, c2)
+    val (c1: graph.Cluster, c2: graph.Cluster) = graph.findMinClusters(Graph.MainClusterList())
+
     Console.out.flush()
 
 }

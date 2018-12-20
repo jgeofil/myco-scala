@@ -1,6 +1,6 @@
 package com.jgeof.mycorrhiza.distances
 
-import com.jgeof.mycorrhiza.Sample
+import com.jgeof.mycorrhiza.samples.Sample
 
 object Distances {
 

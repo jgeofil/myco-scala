@@ -1,5 +1,6 @@
 package com.jgeof.mycorrhiza.distances
-import com.jgeof.mycorrhiza.{Sample, Util}
+import com.jgeof.mycorrhiza.samples.Sample
+import com.jgeof.mycorrhiza.util.Util
 
 class DistanceMatrix(samples: Seq[Sample]){
 
