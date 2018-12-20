@@ -26,7 +26,7 @@ class Genotype() extends Iterable[Int] {
         }
     }
 
-    def ==(that:Genotype):Int = numLoci - (this.invalid | that.invalid).size
+    def ===(that:Genotype):Int = numLoci - (this.invalid | that.invalid).size
     def =?(that:Genotype):Int = (this.genotype & that.genotype).size
 
     override def iterator: Iterator[Int] = genotype.toIterator

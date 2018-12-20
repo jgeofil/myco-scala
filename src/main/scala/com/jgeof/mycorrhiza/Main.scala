@@ -7,13 +7,9 @@ object Main extends App{
 
     val graph = new Graph
 
-    time("Read samples"){graph.readSamplesFromFile("resources/sequences-N20-L100-P3.tsv")}
+    time("Read samples"){graph.readSamplesFromFile("/home/jeremy/repos/scala-myco/resources/sequences-N15-L100-P3.tsv")}
 
-    graph.populateClusters()
-
-    val (c1: graph.Cluster, c2: graph.Cluster) = graph.findMinClusters(Graph.MainClusterList())
-    graph.populateTempClusters(c1, c2)
-    val (c1: graph.Cluster, c2: graph.Cluster) = graph.findMinClusters(Graph.MainClusterList())
+    graph.run()
 
     Console.out.flush()
 

@@ -21,7 +21,7 @@ object Distances {
     }
 
     def jukesCantor(rate: Float=0.25f)(sa: Sample, sb:Sample):Float = {
-        val same = sa == sb
+        val same = sa === sb
         val valid = sa =? sb
         (valid-same)/valid.toFloat
     }
