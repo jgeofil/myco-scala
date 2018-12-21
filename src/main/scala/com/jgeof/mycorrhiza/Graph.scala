@@ -2,9 +2,11 @@ package com.jgeof.mycorrhiza
 
 import com.jgeof.mycorrhiza.samples.Sample
 import com.jgeof.mycorrhiza.util.Timer
-import Console.{GREEN, RED, RESET, YELLOW_B, UNDERLINED, WHITE}
+
+import Console.{GREEN, RED, RESET, UNDERLINED, WHITE, YELLOW_B}
 import com.typesafe.scalalogging.LazyLogging
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 
@@ -27,6 +29,8 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
 
     /** The number of neighbor pairs in the Graph. */
     def numNeighbors: Int = neighbors.size
+
+    var splitsMatrix = Array.empty[Boolean]
 
     private val timer = new Timer()
 
@@ -65,11 +69,18 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
     def run(): Unit = {
         populateClusters()
 
-        while(clusters.size > 2){
-            clusterDistances()
+        while(clusters.size > 1){
             val minClusters = findMinClusters()
             mergeMinClusters(minClusters._1, minClusters._2)
+            if(numClusters%1==0){
+                logger.info(s"$numClusters clusters remaining.")
+            }
+
         }
+        val last = clusters.remove(0)
+        last match {case c: Cluster2 => neighbors.append((c.first, c.second))}
+
+        recoverCircularOrdering()
     }
 
     /**
@@ -89,7 +100,7 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
     def populateClusters(): Unit = {
         logger.info("Populating Clusters from Samples..")
         samples.foreach(sample => newCluster(sample))
-        logger.debug(s"Populated $numClusters clusters from $numSamples samples.")
+        logger.info(s"Populated $numClusters clusters from $numSamples samples.")
     }
 
     /** Finds the pair of Clusters that with the minimal distance.*/
@@ -156,10 +167,10 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
                 newClusters2.append(y)
             case ((w: Cluster1, None),(y: Cluster1, Some(z: Cluster1))) =>
                 newClusters1.append(w)
-                newClusters1.append(y, z)
+                newClusters2.append(y, z)
             case ((w: Cluster1, Some(x: Cluster1)),(y: Cluster1, Some(z: Cluster1))) =>
                 newClusters1.append(w, x)
-                newClusters1.append(y, z)
+                newClusters2.append(y, z)
         }
 
         logger.debug("Finding minimal clusters from the newly split clusters..")
@@ -243,14 +254,51 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
         merged
     }
 
+    def recoverCircularOrdering(): ArrayBuffer[Sample] = {
+
+        var (left:Sample, right:Sample) = neighbors.remove(0)
+
+        val ordering: ArrayBuffer[Sample] = new ArrayBuffer[Sample]()
+        ordering.prepend(left)
+        ordering.append(right)
+
+        var set = neighbors.toSet
+
+        while(set.nonEmpty){
+            for(samples <- set){
+                samples match{
+                    case (s1: Sample, s2: Sample) if s1 == left =>
+                        ordering.prepend(s2)
+                        left = s2
+                        set -= samples
+                    case (s1: Sample, s2: Sample) if s1 == right =>
+                        ordering.append(s2)
+                        right = s2
+                        set -= samples
+                    case (s1: Sample, s2: Sample) if s2 == left =>
+                        ordering.prepend(s1)
+                        left = s1
+                        set -= samples
+                    case (s1: Sample, s2: Sample) if s2 == right =>
+                        ordering.append(s1)
+                        right = s1
+                        set -= samples
+                    case _ => ()
+                }
+            }
+        }
+        ordering
+    }
+
     /**
       * Prints all the pairs of sample neighbors.
       */
     def printNeighborPairs(): Unit = {
-        var count = 0
         for((x, i) <- neighbors.zipWithIndex){
-            printf("%10.10s ", x + (if(i % 20 == 0) "\n" else ""))
+            printf(x + (if(i+1 % 20 == 0) "\n" else "   "))
+
         }
+        print("\n")
     }
 
     /**
@@ -266,37 +314,59 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
         }
         val avg = ds.sum/ds.size.toFloat
         val min = ds.min
-
-        for(i <- clusters(0)++clusters) printf("%5.5s  ",i)
+        printf("%10.10s  ", "      ")
+        for(i <- clusters) printf("%5.5s  ", i.toString())
         print("\n")
         for((c1,j) <- clusters.zipWithIndex){
             printf("%10.10s  ",c1)
             for(c2 <- clusters){
                 val f = c1--c2
-                if(f == min) printf("%10.10s  ", GREEN+util.Util.fv(f))
-                else if(f < avg) printf("%10.10s  ", RED+util.Util.fv(f))
-                else printf("%10.10s  ", WHITE+util.Util.fv(f))
+                if(f == min) printf("%10.10s  ", GREEN+f)
+                else if(f < avg) printf("%10.10s  ", RED+f)
+                else printf("%10.10s  ", WHITE+f)
             }
-            print("\n")
+            print(RESET+"\n")
         }
-        print("\n")
+        print(RESET+"\n")
     }
 
     /**
       * Cluster of Samples.
       */
-    class Cluster extends Iterable[Sample] with Traversable[Sample]{
-        var list: List[Sample] = List()
-        override def iterator: Iterator[Sample] = list.toIterator
+    abstract class Cluster {
 
-        def has(s: Sample): Boolean = list.contains(s)
+        def size: Int
+        def has(s: Sample): Boolean
+
+        import Cluster.distCache
 
         /**
           * Base distance between a pair of clusters.
           * @param that Cluster.
           * @return Distance between the clusters.
           */
-        def -(that: Cluster): Float = { for(x <- this; y <- that) yield x-y }.sum / (this.size * that.size).toFloat
+        def -(that: Cluster): Float = {
+            distCache.getOrElseUpdate((this, that), {
+                (this, that) match {
+                    case (x:Cluster1, y:Cluster1) =>
+                        val d = x.first-y.first
+                        distCache.update((that,this), d)
+                        d
+                    case (x:Cluster1, y:Cluster2) =>
+                        val d = ((x.first-y.first)+(x.first-y.second))/2f
+                        distCache.update((that,this), d)
+                        d
+                    case (x:Cluster2, y:Cluster1) =>
+                        val d = ((x.first-y.first)+(x.second-y.first))/2f
+                        distCache.update((that,this), d)
+                        d
+                    case (x:Cluster2, y:Cluster2) =>
+                        val d = ((x.first-y.first)+(x.second-y.first)+(x.first-y.second)+(x.second-y.second))/4f
+                        distCache.update((that,this), d)
+                        d
+                }
+            })
+        }
 
         /**
           * Calculate the R value of the Cluster.
@@ -312,33 +382,36 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
           * @return The adjusted distance between the clusters.
           */
         def --(that: Cluster): Float = {
-            (this - that) - (this.r + that.r)
+            if(this != that) (this - that) - (this.r + that.r) else 0
         }
     }
 
-    /** Cluster of 1 sample.*/
-    class Cluster1(val first: Sample) extends Cluster{
-        list = List(first)
 
-        override def toString():String = s"$first"
+    /** Cluster of 1 sample.*/
+    class Cluster1(val first: Sample) extends Cluster {
+        val size: Int = 1
+        override def has(s: Sample): Boolean = first == s
+        override def toString:String = s"$first"
 
         def +(that: Cluster1): Cluster2 = new Cluster2(this.first, that.first)
         def +(that: Cluster2): Cluster2 = new Cluster2(this.first, that.second)
+
+
     }
 
     /** Cluster of 2 samples. */
     class Cluster2(val first: Sample, val second: Sample) extends Cluster{
-        list = List(first, second)
-
-        override def toString():String = s"$first+$second"
+        val size: Int = 2
+        override def has(s: Sample): Boolean = first == s | second == s
+        override def toString:String = s"$first+$second"
 
         def fis(s: Sample): Boolean = first == s
         def sis(s: Sample): Boolean = second == s
 
         def +(that: Cluster1): Cluster2 = new Cluster2(this.first, that.first)
         def +(that: Cluster2): Cluster2 = new Cluster2(this.first, that.second)
-        def \+(that: Cluster2): Cluster2 = new Cluster2(this.first, that.first)
-        def /+(that: Cluster2): Cluster2 = new Cluster2(this.second, that.second)
+        def /+(that: Cluster2): Cluster2 = new Cluster2(this.first, that.first)
+        def \+(that: Cluster2): Cluster2 = new Cluster2(this.second, that.second)
     }
 
     /** Companion object for class Cluster1 with 1 samples.*/
@@ -349,6 +422,10 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
     /** Companion object for class Cluster2 with 2 samples.*/
     object Cluster2 {
         def unapply(arg: Cluster2): Option[(Sample, Sample)] = Some(arg.first, arg.second)
+    }
+
+    object Cluster {
+        def distCache = new mutable.HashMap[(Cluster,Cluster), Float]
     }
 }
 
