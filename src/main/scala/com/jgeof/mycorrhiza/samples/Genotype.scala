@@ -4,7 +4,7 @@ import com.jgeof.mycorrhiza.util.Exceptions._
 
 import scala.collection.{mutable => m}
 
-class Genotype() extends Iterable[Int] {
+trait Genotype extends{
     import Genotype._
 
     private val genotype = m.BitSet.empty
@@ -28,8 +28,6 @@ class Genotype() extends Iterable[Int] {
 
     def ===(that:Genotype):Int = numLoci - (this.invalid | that.invalid).size
     def =?(that:Genotype):Int = (this.genotype & that.genotype).size
-
-    override def iterator: Iterator[Int] = genotype.toIterator
 }
 
 object Genotype {

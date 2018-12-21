@@ -1,12 +1,12 @@
 package com.jgeof.mycorrhiza.distances
 
-import com.jgeof.mycorrhiza.samples.Sample
+import com.jgeof.mycorrhiza.samples.GenotypedSample
 
 object Distances {
 
-    type Metric = (Sample, Sample) => Float
+    type Metric = (GenotypedSample, GenotypedSample) => Float
 
-    def getDistanceMatrix(samples: Seq[Sample], metric: Metric): DistanceMatrix = {
+    def getDistanceMatrix(samples: Seq[GenotypedSample], metric: Metric): DistanceMatrix = {
         println("Calculating distances...")
         var matrix = new DistanceMatrix(samples)
         for(i <- samples.indices.par){
@@ -20,7 +20,7 @@ object Distances {
         matrix
     }
 
-    def jukesCantor(rate: Float=0.25f)(sa: Sample, sb:Sample):Float = {
+    def jukesCantor(rate: Float=0.25f)(sa: GenotypedSample, sb:GenotypedSample):Float = {
         val same = sa === sb
         val valid = sa =? sb
         (valid-same)/valid.toFloat

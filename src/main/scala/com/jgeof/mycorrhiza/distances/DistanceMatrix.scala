@@ -1,22 +1,22 @@
 package com.jgeof.mycorrhiza.distances
-import com.jgeof.mycorrhiza.samples.Sample
+import com.jgeof.mycorrhiza.samples.GenotypedSample
 import com.jgeof.mycorrhiza.util.Util
 
-class DistanceMatrix(samples: Seq[Sample]){
+class DistanceMatrix(samples: Seq[GenotypedSample]){
 
     private val keys = samples.toArray
     private val matrix = Array.ofDim[Float](keys.length, keys.length)
 
-    private val toInt = (s: Sample) => keys.indexOf(s)
+    private val toInt = (s: GenotypedSample) => keys.indexOf(s)
 
-    def setTo(sample1: Sample, sample2: Sample, value: Float): Unit = {
+    def setTo(sample1: GenotypedSample, sample2: GenotypedSample, value: Float): Unit = {
         val i = toInt(sample1)
         val j = toInt(sample2)
         if(i > j) matrix(i)(j) = value
         else matrix(j)(i) = value
     }
 
-    def apply(sample1: Sample, sample2: Sample): Float = {
+    def apply(sample1: GenotypedSample, sample2: GenotypedSample): Float = {
         val i = toInt(sample1)
         val j = toInt(sample2)
         if(i > j) matrix(i)(j) else matrix(j)(i)

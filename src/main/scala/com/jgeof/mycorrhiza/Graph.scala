@@ -1,6 +1,6 @@
 package com.jgeof.mycorrhiza
 
-import com.jgeof.mycorrhiza.samples.Sample
+import com.jgeof.mycorrhiza.samples._
 import com.jgeof.mycorrhiza.util.Timer
 
 import Console.{GREEN, RED, RESET, UNDERLINED, WHITE, YELLOW_B}
@@ -14,6 +14,7 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
 
     /** List of Samples. */
     private val samples = ArrayBuffer.empty[Sample]
+    def getSamples() = samples
 
     /** List of Clusters. */
     private var clusters = ArrayBuffer.empty[Cluster]
@@ -50,7 +51,10 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
 
         for(str <- lines) {
             val arr = str.split("\t")
-            samples.append(Sample(arr.head, arr(1), arr.last))
+            val newSample = GenotypedSample(arr.head, arr(1), arr.last)
+            samples.append(newSample)
+            samples.foreach((x: Sample) => x match {case s:GenotypedSample => newSample.initDist(s)})
+
 
             logger.whenDebugEnabled({
                 if(samples.size % thresh == 0){
@@ -63,10 +67,25 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
         logger.info(s"Read $numSamples samples in ${timer.now()} seconds.")
     }
 
+    def setSamplesAndDistances(newSamples: Seq[String], origins: Map[String, String], distances: Map[(String, String), Float]): Unit = {
+        for(s <- newSamples){
+            val newSample = new PrecaculatedSample(s, origins(s))
+            samples.append(newSample)
+            for(t <- samples){
+                if(distances.contains((s, t.getName))){
+                    newSample.updateDist(t, distances((s, t.getName)))
+                }else if(distances.contains((t.getName, s))){
+                    newSample.updateDist(t, distances((t.getName, s)))
+                }
+            }
+        }
+    }
+
     /** Launch the clustering process.
       *
       */
-    def run(): Unit = {
+    def run(): ArrayBuffer[Sample] = {
+        Sample.persistDistances()
         populateClusters()
 
         while(clusters.size > 1){
@@ -78,9 +97,10 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
 
         }
         val last = clusters.remove(0)
-        last match {case c: Cluster2 => neighbors.append((c.first, c.second))}
-
+        //last match {case c: Cluster2 => neighbors.append((c.first, c.second))}
+        Sample.restoreDistances()
         recoverCircularOrdering()
+
     }
 
     /**
