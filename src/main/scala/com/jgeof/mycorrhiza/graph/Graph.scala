@@ -1,11 +1,10 @@
-package com.jgeof.mycorrhiza
+package com.jgeof.mycorrhiza.graph
 
 import com.jgeof.mycorrhiza.samples._
 import com.jgeof.mycorrhiza.util.Timer
-
-import Console.{GREEN, RED, RESET, UNDERLINED, WHITE, YELLOW_B}
 import com.typesafe.scalalogging.LazyLogging
 
+import scala.Console.{GREEN, RED, RESET, WHITE}
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
