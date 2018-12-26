@@ -21,6 +21,7 @@ trait Genotype extends{
                 case 'G' => genotype.add((AlphaSize * i) + 2);
                 case 'C' => genotype.add((AlphaSize * i) + 3);
                 case 'N' => invalid.add(i)
+                case '-' => invalid.add(i)
                 case c: Char => throw InvalidCharacter(c.toString)
             }
         }

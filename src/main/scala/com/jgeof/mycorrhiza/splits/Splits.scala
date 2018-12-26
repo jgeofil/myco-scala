@@ -1,9 +1,8 @@
 package com.jgeof.mycorrhiza.splits
 
-import breeze.linalg.DenseMatrix
-import breeze.linalg.DenseVector
+import breeze.linalg.{CSCMatrix, DenseMatrix, DenseVector}
 import com.jgeof.mycorrhiza.samples.Sample
-import com.jgeof.mycorrhiza.splits.solver.OpenSha
+import com.jgeof.mycorrhiza.splits.solver._
 
 class Splits extends scalax.chart.module.Charting {
 
@@ -17,6 +16,8 @@ class Splits extends scalax.chart.module.Charting {
 
         val pairwiseIndices = for(x <- order.indices; y <- x+1 until order.size) yield (x,y)
 
+        //for((x,y) <- pairwiseIndices) println(x+"\t"+y+"\t"+(order(x)-order(y)))
+
         // Vector of pairwise distances
         val pairwiseDistances = for((x,y) <- pairwiseIndices) yield (order(x)-order(y)).toDouble
         val pairwiseArray = pairwiseDistances.toArray
@@ -25,49 +26,57 @@ class Splits extends scalax.chart.module.Charting {
         var splitsStartEndVector = for(s <- 1 until order.size; p <- s until order.size) yield (s,p)
         splitsStartEndVector = splitsStartEndVector.sortBy(sp => sp._1 - sp._2)
 
-        def seperated(i: Int, j: Int, s0: Int, s1: Int): Double =
-            if(((i < s0 | i > s1) & j >= s0 & j <= s1) | (i >= s0 & i <= s1 & (j < s0 | j > s1))) 1d else 0.01d
+        def seperated(i: Int, j: Int, s0: Int, s1: Int): Boolean =
+            ((i < s0 | i > s1) & j >= s0 & j <= s1) | (i >= s0 & i <= s1 & (j < s0 | j > s1))
+
+        //# construct indicator matrix A from splits compatible with circular order
+        //def separated(i,j,t):
+        //return ((i<t[0] or i>t[1]) and j>=t[0] and j<=t[1]) or \
+        //(i>=t[0] and i<=t[1] and (j<t[0] or j>t[1]))
 
         // Indicator matrix
-        var indicatorMatrix = for((x,y) <- pairwiseIndices) yield for((s0, s1) <- splitsStartEndVector) yield seperated(x,y,s0, s1)
-        //indicatorMatrix = indicatorMatrix
-        var indicatorArray = indicatorMatrix.flatten.toArray
-
-        val ata = new DenseMatrix(pairwiseIndices.size, pairwiseIndices.size, indicatorArray)
-        val atb = DenseVector[Double](pairwiseDistances.toArray)
-
-        //def seperatedB(i: Int, j: Int, s0: Int, s1: Int): Boolean =
-        //    ((i < s0 | i > s1) & j >= s0 & j <= s1) | (i >= s0 & i <= s1 & (j < s0 | j > s1))
-        //val builder = new CSCMatrix.Builder[Double](rows=pairwiseIndices.size, cols=pairwiseIndices.size)
-        //for(((x,y),i) <- pairwiseIndices.zipWithIndex) for(((s0, s1),j) <- splitsStartEndVector.zipWithIndex){
-        //    if(seperatedB(x,y,s0, s1)){
-        //        builder.add(i,j, 1.0)
-        //    }
-        //}
-
-        //val sata = builder.result()
+        //var indicatorMatrix = for((x,y) <- pairwiseIndices) yield {for((s0, s1) <- splitsStartEndVector) yield if(seperated(x,y,s0, s1)) 1d else 0d}
 
 
-        def powSum(total: Double, v: Double): Double = total + (v*v)
+        //var indicatorArray = indicatorMatrix.flatten.toArray
 
-        def objectiveFunc(ata: DenseMatrix[Double], x: DenseVector[Double], atb: DenseVector[Double]): Double = {
-            ((ata*x)-atb).toArray.map(x=> x*x).sum
+        val builder = new CSCMatrix.Builder[Double](pairwiseIndices.length,pairwiseIndices.length)
+        for(((x,y),j) <- pairwiseIndices.zipWithIndex){
+           for (((s0, s1),k) <- splitsStartEndVector.zipWithIndex){
+               if (seperated(x,y,s0, s1)) {
+                    builder.add(j,k,1)
+                }
+            }
         }
 
-        val solver = new OpenSha()
+        val ata = builder.result()
 
-        solver.init(indicatorArray, pairwiseArray)
+        val atb = DenseVector[Double](pairwiseDistances.toArray)
 
-        val x = solver.solve()
+        val solver = new TSNNLS()
 
-        val atx = DenseVector[Double](x)
+        solver.init(ata, atb)
 
-        println(x.toList)
+        val xxx = solver.solve().map(_*1)
+
+        //val atx = DenseVector[Double]((for(x <- xxx) yield if(x> 1e-6) x else 0).toArray)
+        println("W")
+        println(xxx.toArray.toList)
+        println("REAL")
         println(pairwiseArray.toList)
-        println(ata*atx)
-        println(objectiveFunc(ata, atx, atb))
+        println("EST")
+        println(ata*xxx)
+        println("OBJ")
+        println(Solver.objectiveFunc(ata, xxx, atb))
+        println("MSE")
+        println(Solver.meanSquare(ata, xxx, atb))
 
-        val estimated = (ata*atx).toArray
+
+        val diff = atb-(ata*xxx)
+
+        val estimated = (ata*xxx).toArray
+        println("DIFF")
+        println(diff)
 
         val data = List(
             (for((x,y) <- estimated.zipWithIndex.toList) yield (y,x)).toXYSeries("Est"),

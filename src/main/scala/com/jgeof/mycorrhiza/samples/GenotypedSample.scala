@@ -6,7 +6,7 @@ class GenotypedSample(identifier:String, origin:String) extends Sample(identifie
     def initDist(that: GenotypedSample): Unit = {
         val shared = this===that
         val same = this=?that
-        updateDist(that, shared-same)
+        updateDist(that, (shared-same)/shared.toFloat)
     }
 
 }

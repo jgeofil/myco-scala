@@ -1,47 +1,50 @@
 package com.jgeof.mycorrhiza.splits.solver
 
+import breeze.linalg.{CSCMatrix, DenseMatrix, DenseVector, SparseVector, Tensor}
+
 abstract class Solver {
 
-    def init(aMatrix: Array[Double], bVector: Array[Double]): Unit
+    //def init(aMatrix: Any, bVector: DenseVector[Double]): Unit
 
-    def solve(): Array[Double]
+    def solve(): DenseVector[Double]
 }
 
-/**
-val rand = new Random()
+object Solver {
 
-        def getRandomChild(w: DenseVector[Double], alpha: Double = 1d): DenseVector[Double] = {
-            val pos = rand.nextInt(w.length)
-            val step = (rand.nextDouble()-0.5)*alpha
-            val newW = w.copy
-            newW.update(pos, math.abs(step+newW.valueAt(pos)))
-            newW
-        }
+    def objectiveFunc(aMatrix: DenseMatrix[Double], x: DenseVector[Double], bVector: DenseVector[Double]): Double = {
 
+        val dvar = bVector.map(x => x*x).toArray.sum / bVector.length
+        val destim = aMatrix*x
+        var resVar = (for((x,y) <- destim.toArray.zip(bVector.toArray)) yield (x-y)*(x-y)).sum / bVector.length.toDouble
+        math.abs(math.sqrt(dvar)-math.sqrt(resVar))/math.sqrt(dvar)
+    }
 
-        val threshold = 1e-6d
-//w=nnls.minimize(sata.toDenseMatrix,atb)
-        println("Solved")
-        //w = w.map(x => if(x>0) x else 0)
-        var residual = objectiveFunc(sata, w, atb)
-        println(residual)
-        var time = 1
-        var t = 1000000d
-        while(residual > threshold){
-            time+=1
-            t = 1000000d/time
-            val child = getRandomChild(w)
-            val childResidual = objectiveFunc(sata, child, atb)
+    def objectiveFunc(aMatrix: CSCMatrix[Double], x: DenseVector[Double], bVector: DenseVector[Double]): Double = {
 
-            val diff = childResidual - residual
-            val prob = math.exp(-diff/t)
-            val probThresh = rand.nextDouble()
-            if(time%100000==0) printf("%5.5s\t%5.5s\tRes: %5.5f \tNRes: %5.5f\tDiff: %5.5f\tE: %5.5f\tEt: %5.5f\tT: %5.5f \n",residual<childResidual, prob>probThresh, residual, childResidual, diff, prob, probThresh, t)
-            if(diff < 0d || prob  > probThresh){
-                residual = childResidual
-                w = child
-            }
-            if(time%10000==0)chartFunc(time, residual)
-            Thread.sleep(0)
-        }
-  */
+        val dvar = bVector.map(x => x*x).toArray.sum / bVector.length
+        val destim = aMatrix*x
+        var resVar = (for((x,y) <- destim.toArray.zip(bVector.toArray)) yield (x-y)*(x-y)).sum / bVector.length.toDouble
+        math.abs(math.sqrt(dvar)-math.sqrt(resVar))/math.sqrt(dvar)
+    }
+
+    def meanSquare(aMatrix: DenseMatrix[Double], xxx: DenseVector[Double], bVector: DenseVector[Double]): Double = {
+
+        val destim = aMatrix*xxx
+        var resVar = (for((x,y) <- destim.toArray.zip(bVector.toArray)) yield (x-y)*(x-y)).sum / bVector.length.toDouble
+        resVar
+    }
+
+    def meanSquare(aMatrix: CSCMatrix[Double], xxx: DenseVector[Double], bVector: DenseVector[Double]): Double = {
+
+        val destim = aMatrix*xxx
+        var resVar = (for((x,y) <- destim.toArray.zip(bVector.toArray)) yield (x-y)*(x-y)).sum / bVector.length.toDouble
+        resVar
+    }
+
+    def meanSquare(aMatrix: CSCMatrix[Double], xxx: SparseVector[Double], bVector: SparseVector[Double]): Double = {
+
+        val destim = aMatrix*xxx
+        var resVar = (for((x,y) <- destim.toArray.zip(bVector.toArray)) yield (x-y)*(x-y)).sum / bVector.length.toDouble
+        resVar
+    }
+}
