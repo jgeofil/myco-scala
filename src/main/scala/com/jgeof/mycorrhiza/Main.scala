@@ -8,8 +8,6 @@ import com.jgeof.mycorrhiza.splits.Splits
 import com.jgeof.mycorrhiza.examples._
 
 
-
-
 object Main extends App with LazyLogging with scalax.chart.module.Charting{
 
 
