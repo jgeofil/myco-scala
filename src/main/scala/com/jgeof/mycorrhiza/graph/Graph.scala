@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 
-class Graph(name: String = "default-graph") extends LazyLogging { parent =>
+class Graph(name: String = "default-com.jgeof.mycorrhiza.graph") extends LazyLogging { parent =>
 
     /** List of Samples. */
     private val samples = ArrayBuffer.empty[Sample]
@@ -103,13 +103,13 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
     }
 
     /**
-      * Creates a new Cluster1 and adds it to the graph.
+      * Creates a new Cluster1 and adds it to the com.jgeof.mycorrhiza.graph.
       * @param sample The sample in the cluster.
       */
     def newCluster(sample: Sample): Unit = clusters += new Cluster1(sample)
 
     /**
-      * Creates a new Cluster2 and adds it to the graph.
+      * Creates a new Cluster2 and adds it to the com.jgeof.mycorrhiza.graph.
       * @param sample1 The first sample in the cluster.
       * @param sample2 The second sample in the cluster.
       */
@@ -154,7 +154,7 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
                 (c, None)
             }
             case Cluster2(s1, s2) => {
-                logger.debug(s"Cluster $cluster is Cluster2, removing it from the graph..")
+                logger.debug(s"Cluster $cluster is Cluster2, removing it from the com.jgeof.mycorrhiza.graph..")
                 clusters -= cluster
                 val newCluster1 = new Cluster1(s1)
                 val newCluster2 = new Cluster1(s2)
@@ -197,7 +197,7 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
 
         logger.debug(s"Setting ${x.first} and ${y.first} as neighbors..")
         neighbors.append((x.first, y.first))
-        logger.debug(s"There are now $numNeighbors pairs in the graph.")
+        logger.debug(s"There are now $numNeighbors pairs in the com.jgeof.mycorrhiza.graph.")
         logger.whenDebugEnabled(printNeighborPairs())
 
         logger.debug("Removing temporary clusters..")
@@ -208,7 +208,7 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
         }else{
             clusters += mergeClusters(cluster1, y.first, cluster2, x.first)
         }
-        logger.debug(s"There are now $numClusters in the graph.")
+        logger.debug(s"There are now $numClusters in the com.jgeof.mycorrhiza.graph.")
     }
 
     /** Update the distances when merge a triple of samples.
@@ -321,7 +321,7 @@ class Graph(name: String = "default-graph") extends LazyLogging { parent =>
     }
 
     /**
-      * Prints a distance matrix for all the clusters in the graph.
+      * Prints a distance matrix for all the clusters in the com.jgeof.mycorrhiza.graph.
       */
     def clusterDistances(): Unit = {
         print("\n")

@@ -10,8 +10,6 @@ lazy val mycorrhiza = (project in file("."))
         libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3",
         libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
         libraryDependencies  += "org.scalanlp" %% "breeze" % "0.13.2",
-        //    libraryDependencies  += "org.scalanlp" %% "breeze-natives" % "0.13.2",
-        //libraryDependencies += "com.github.fommil.netlib" % "all" % "1.1.2" pomOnly(),
         libraryDependencies += "com.github.wookietreiber" %% "scala-chart" % "latest.integration",
         resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/",
     )

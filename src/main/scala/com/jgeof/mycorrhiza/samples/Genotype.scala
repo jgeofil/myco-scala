@@ -4,16 +4,14 @@ import com.jgeof.mycorrhiza.util.Exceptions._
 
 import scala.collection.{mutable => m}
 
-trait Genotype extends{
+trait Genotype {
     import Genotype._
 
     private val genotype = m.BitSet.empty
     private val invalid = m.BitSet.empty
-    var numLoci = 0
 
     def initFromString(rawGenotype: String): Unit = {
-        numLoci = rawGenotype.length
-        for(i <- rawGenotype.indices){
+        for(i <- rawGenotype.indices) {
             val c = rawGenotype.charAt(i)
             c match {
                 case 'A' => genotype.add((AlphaSize * i) + 0);
@@ -29,6 +27,8 @@ trait Genotype extends{
 
     def ===(that:Genotype):Int = numLoci - (this.invalid | that.invalid).size
     def =?(that:Genotype):Int = (this.genotype & that.genotype).size
+    def numAmbiguous: Int = invalid.size
+    def numLoci: Int = genotype.size+invalid.size
 }
 
 object Genotype {

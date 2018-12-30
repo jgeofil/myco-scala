@@ -23,7 +23,7 @@ object Main extends App with LazyLogging with scalax.chart.module.Charting{
 
     time("Read samples"){graph.readSamplesFromFile("/home/jeremy/repos/scala-myco/resources/gipsy.tsv")}
 
-    //graph.setSamplesAndDistances(Example2.s,Example2.o,Example2.d)
+    //com.jgeof.mycorrhiza.graph.setSamplesAndDistances(Example2.s,Example2.o,Example2.d)
 
     val ordering = graph.run()
 
