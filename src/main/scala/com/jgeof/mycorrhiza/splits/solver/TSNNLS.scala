@@ -9,8 +9,8 @@ import com.typesafe.scalalogging.LazyLogging
 class TSNNLS extends Solver with LazyLogging{
 
 
-    var AMatrix: CSCMatrix[Double] = _
-    var bVector: SparseVector[Double] = _
+    var AMatrix: DenseMatrix[Double] = _
+    var bVector: DenseVector[Double] = _
 
     var xVector: SparseVector[Double] = _
     var yVector: SparseVector[Double] = _
@@ -21,22 +21,24 @@ class TSNNLS extends Solver with LazyLogging{
 
     var negativeVariableCount = 0
 
-    def init(A: CSCMatrix[Double], b: DenseVector[Double]): Unit = {
+    var Npairs = 0
+
+    def sparsify(v: DenseVector[Double]): SparseVector[Double] = {
+        val s = SparseVector.zeros[Double](v.length)
+        v.foreachPair((k,v) => s(k)=v)
+        s.compact()
+        s
+    }
+
+    def init(A: DenseMatrix[Double], b: DenseVector[Double]): Unit = {
         logger.debug("Initializing solver..")
         AMatrix = A
-
-        bVector = SparseVector.tabulate(b.length)(b(_))
-        bVector.compact()
-
-        yVector = -(AMatrix.t*bVector)
-        yVector.compact()
-
-        xVector = SparseVector.zeros[Double](bVector.length)
-        xVector.compact()
-
+        bVector = b
+        Npairs = b.length
+        yVector = sparsify(-(AMatrix.t*bVector))
+        xVector = SparseVector.zeros[Double](Npairs)
         pValue = 3
         NValue = Float.PositiveInfinity
-
         logger.debug("Solver initialized.")
     }
 
@@ -48,8 +50,8 @@ class TSNNLS extends Solver with LazyLogging{
 
     def countNegatives(): Unit = {
         negativeVariableCount = 0
-        xVector.activeValuesIterator.foreach(x => if(x < 0d) negativeVariableCount += 1)
-        yVector.activeValuesIterator.foreach(x => if(x < 0d) negativeVariableCount += 1)
+        xVector.activeValuesIterator.foreach(x => if(x < 0d) {negativeVariableCount += 1; println(x)})
+        yVector.activeValuesIterator.foreach(x => if(x < 0d) {negativeVariableCount += 1; println(x)})
     }
 
     def getNegativeIndices(vec: SparseVector[Double]): Iterator[Int] = {
@@ -77,28 +79,15 @@ class TSNNLS extends Solver with LazyLogging{
     }
 
 
-    def getAMatrix(vec: SparseVector[Double]): CSCMatrix[Double] = {
+    def getAMatrix(vec: SparseVector[Double]): DenseMatrix[Double] = {
         logger.debug("Subsetting indicator matrix..")
-        val builder = new CSCMatrix.Builder[Double](rows=bVector.length, bVector.length)
-        for(x <- 0 until AMatrix.rows; y <- vec.activeKeysIterator) builder.add(x,y,AMatrix(x,y))
-        logger.debug("Returning submatrix.")
-        builder.result()
-    }
-
-    def sliceMatrix(matrix: CSCMatrix[Double], rFrom: Int, rTo: Int, cFrom: Int, cTo: Int): CSCMatrix[Double] = {
-        val newMatrix = new CSCMatrix.Builder[Double](rTo - rFrom, cTo - cFrom)
-
-        for(((x,y), v) <- matrix.activeIterator){
-            if(x >= rFrom & x < rTo & y >= cFrom & y < cTo){
-                newMatrix.add(x-rFrom, y-cFrom, v)
-            }
+        val newMatrix = DenseMatrix.zeros[Double](rows=bVector.length, bVector.length)
+        for(x <- 0 until AMatrix.rows; y <- vec.activeKeysIterator){
+            newMatrix(x,y)=AMatrix(x,y)
         }
-        newMatrix.result()
+        logger.debug("Returning submatrix.")
+        newMatrix
     }
-
-
-
-
 
     def solve(): DenseVector[Double] = {
         while(!isFeasibleSolution){
@@ -137,24 +126,30 @@ class TSNNLS extends Solver with LazyLogging{
             val Af = getAMatrix(xVector)
 
             logger.debug("Solving for Af for b..")
+            try{
+                xVector = sparsify(Af\bVector)
+            }catch{
+                case exception: Exception => {
+                    logger.debug("Matrix is singular, fallback to LSMR..")
 
+                    val nnls = new breeze.optimize.linear.NNLS()
+                    nnls.initialize(10000)
+                    xVector = sparsify(nnls.minimize(Af,bVector))
+                }
+            }
 
-
-            xVector = LSMR.solve(Af, bVector, quiet = false, tolerance = 1e-4, regularization = 10000d, maxIter = 20)
 
             val Ag = getAMatrix(yVector)
 
             logger.debug("Calculating y..")
-            yVector = Ag.t*((Af*xVector) - bVector)
+            yVector = sparsify(Ag.t*((Af*xVector) - bVector))
 
             for((k,v) <- xVector.activeIterator; if abs(v) < 1e-12) xVector(k) = 0d
             for((k,v) <- yVector.activeIterator; if abs(v) < 1e-12) yVector(k) = 0d
-
             xVector.compact()
             yVector.compact()
         }
-
-        xVector.toDenseVector
+        xVector.toDenseVector+yVector.toDenseVector
     }
 
 
